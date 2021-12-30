@@ -35,7 +35,7 @@ struct buddy2* buddy2_new( int size ) {
   if (size < 1 || !IS_POWER_OF_2(size))
     return NULL;
 
-  self = (struct buddy2*)ALLOC( 2 * size * sizeof(unsigned));
+  self = (struct buddy2*)ALLOC( 2 * size * sizeof(unsigned));  // 整个分配器的大小就是满二叉树节点数目 一个节点对应4个字节, 即所需管理内存单元数目的2倍。
   self->size = size;
   node_size = size * 2;
 
@@ -44,6 +44,11 @@ struct buddy2* buddy2_new( int size ) {
       node_size /= 2;
     self->longest[i] = node_size;
   }
+  // MAX = size * 2
+  // 0->MAX
+  // 1->MAX/2, 2->MAX/2
+  // 3->MAX/4, 4->MAX/4, 5->MAX/4, 6->MAX/4
+  // 7->MAX/8 ....
   return self;
 }
 
@@ -66,7 +71,7 @@ int buddy2_alloc(struct buddy2* self, int size) {
 
   if (self->longest[index] < size)
     return -1;
-
+  // self->size: total usable size (pow of 2)
   for(node_size = self->size; node_size != size; node_size /= 2 ) {
     if (self->longest[LEFT_LEAF(index)] >= size)
       index = LEFT_LEAF(index);
@@ -93,7 +98,7 @@ void buddy2_free(struct buddy2* self, int offset) {
   assert(self && offset >= 0 && offset < self->size);
 
   node_size = 1;
-  index = offset + self->size - 1;
+  index = offset + self->size - 1; // self->longest[index] = 1
 
   for (; self->longest[index] ; index = PARENT(index)) {
     node_size *= 2;
